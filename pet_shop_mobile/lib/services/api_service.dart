@@ -1,8 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+
 class ApiService {
-  static const baseUrl = 'http://192.168.15.2:8000/api'; // IP real do servidor
+  static const baseUrl = 'http://144.22.203.109:80/api'; // IP real do servidor
 
   // POST genérico com timeout e tratamento de erro
   static Future<Map<String, dynamic>> _post(String endpoint, Map<String, dynamic> data) async {
@@ -92,4 +93,10 @@ class ApiService {
 
     return result;
   }
+
+  // Vincular pet ao usuário logado
+  static Future<Map<String, dynamic>> linkPetToUser(int userId, int petId) async {
+    return _post('users/$userId/pets/$petId', {});
+  }
+
 }

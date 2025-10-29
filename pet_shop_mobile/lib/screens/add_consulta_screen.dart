@@ -1,59 +1,41 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
-class AddPetScreen extends StatefulWidget {
-  final Map<String, dynamic> userData;
-
-  const AddPetScreen({super.key, required this.userData});
+class AddConsultaScreen extends StatefulWidget {
+  const AddConsultaScreen({super.key});
 
   @override
-  State<AddPetScreen> createState() => _AddPetScreenState();
+  State<AddConsultaScreen> createState() => _AddConsultaScreenState();
 }
 
-class _AddPetScreenState extends State<AddPetScreen> {
+class _AddConsultaScreenState extends State<AddConsultaScreen> {
   final _formKey = GlobalKey<FormState>();
-  final nomeController = TextEditingController();
-  final racaController = TextEditingController();
-  final idadeController = TextEditingController();
-  final tipoController = TextEditingController();
+  final dataController = TextEditingController();
+  final veterinarioController = TextEditingController();
+  final donoController = TextEditingController();
+  final petController = TextEditingController();
 
   bool loading = false;
 
-  Future<void> salvarPet() async {
+  Future<void> salvarConsulta() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => loading = true);
 
-    // 1) Cadastra o pet
-    final createPetResult = await ApiService.addPet({
-      "nome": nomeController.text,
-      "raca": racaController.text,
-      "idade": int.tryParse(idadeController.text) ?? 0,
-      "tipo": tipoController.text,
-    });
+    // final result = await ApiService._post("consultas", {
+    //   "data": dataController.text,
+    //   "id_veterinario": veterinarioController.text,
+    //   "id_dono": donoController.text,
+    //   "id_pet": petController.text,
+    // });
+    //
+    // setState(() => loading = false);
+    //
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(content: Text(result['message'] ?? 'Erro ao salvar')),
+    // );
 
-    if (createPetResult['status'] == true) {
-      final int petId = createPetResult['data']['id'];
-      final int userId = widget.userData['id'];
-
-      // 2) Vincula o pet ao usuário logado
-      final linkResult = await ApiService.linkPetToUser(userId, petId);
-
-      setState(() => loading = false);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(linkResult['message'] ?? "Pet vinculado com sucesso!")),
-      );
-
-      if (linkResult['status'] == true) Navigator.pop(context);
-      return;
-    }
-
-    // Se falhou ao criar o pet
-    setState(() => loading = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(createPetResult['message'] ?? "Erro ao cadastrar pet")),
-    );
+    //if (result['status'] == true) Navigator.pop(context);
   }
 
   Widget campo(String label, TextEditingController controller) {
@@ -76,7 +58,7 @@ class _AddPetScreenState extends State<AddPetScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text("Cadastrar Pet"),
+        title: const Text("Cadastrar Consulta"),
         centerTitle: true,
         backgroundColor: Colors.black,
       ),
@@ -86,18 +68,18 @@ class _AddPetScreenState extends State<AddPetScreen> {
           key: _formKey,
           child: Column(
             children: [
-              campo("Nome", nomeController),
+              campo("Data (YYYY-MM-DD HH:mm:ss)", dataController),
               const SizedBox(height: 12),
-              campo("Raça", racaController),
+              campo("ID Veterinário", veterinarioController),
               const SizedBox(height: 12),
-              campo("Idade", idadeController),
+              campo("ID Dono", donoController),
               const SizedBox(height: 12),
-              campo("Tipo (ex: 1 ou 2)", tipoController),
+              campo("ID Pet", petController),
               const SizedBox(height: 24),
               loading
                   ? const CircularProgressIndicator()
                   : ElevatedButton(
-                onPressed: salvarPet,
+                onPressed: salvarConsulta,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.teal,
                   padding: const EdgeInsets.symmetric(

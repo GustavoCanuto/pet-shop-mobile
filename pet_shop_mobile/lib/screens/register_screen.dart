@@ -14,14 +14,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _sobrenomeController = TextEditingController();
   final _emailController = TextEditingController();
   final _senhaController = TextEditingController();
-
+  final _confirmarSenhaController = TextEditingController();
   bool _loading = false;
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _loading = true);
-
     final data = {
       "nome": _nomeController.text,
       "sobrenome": _sobrenomeController.text,
@@ -33,61 +32,86 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final result = await ApiService.registerUser(data);
       setState(() => _loading = false);
-
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['message'] ?? 'Usuário criado com sucesso!')),
+      );
       if (result['status'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] ?? 'Usuário criado com sucesso!')),
-        );
         Navigator.pushReplacementNamed(context, '/login');
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] ?? 'Erro ao criar usuário')),
-        );
       }
     } catch (e) {
       setState(() => _loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao conectar com o servidor: ${e.toString()}')),
+        SnackBar(content: Text('Erro ao conectar: ${e.toString()}')),
       );
     }
+  }
+
+  InputDecoration _inputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      prefixIcon: Icon(icon, color: Colors.white70),
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.white70),
+      filled: true,
+      fillColor: Colors.grey[900],
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: const BorderSide(color: Colors.tealAccent),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Criar Conta')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _nomeController,
-                decoration: const InputDecoration(labelText: 'Nome'),
-                validator: (v) => v!.isEmpty ? 'Informe o nome' : null,
-              ),
-              TextFormField(
-                controller: _sobrenomeController,
-                decoration: const InputDecoration(labelText: 'Sobrenome'),
-              ),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
-              ),
-              TextFormField(
-                controller: _senhaController,
-                decoration: const InputDecoration(labelText: 'Senha'),
-                obscureText: true,
-              ),
-              const SizedBox(height: 20),
-              _loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                onPressed: _register,
-                child: const Text('Criar Conta'),
-              ),
-            ],
+      backgroundColor: Colors.black,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                const Icon(Icons.favorite, color: Colors.pinkAccent, size: 48),
+                const SizedBox(height: 12),
+                const Text("Criar Conta - Dono de Pet",
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                const Text("Junte-se à nossa comunidade de amantes de pets! 🐾",
+                    textAlign: TextAlign.center, style: TextStyle(color: Colors.white70)),
+                const SizedBox(height: 24),
+                TextFormField(controller: _nomeController, decoration: _inputDecoration("Nome", Icons.person)),
+                const SizedBox(height: 16),
+                TextFormField(controller: _sobrenomeController, decoration: _inputDecoration("Sobrenome", Icons.person_outline)),
+                const SizedBox(height: 16),
+                TextFormField(controller: _emailController, decoration: _inputDecoration("Email", Icons.email)),
+                const SizedBox(height: 16),
+                TextFormField(controller: _senhaController, decoration: _inputDecoration("Senha", Icons.lock), obscureText: true),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _confirmarSenhaController,
+                  decoration: _inputDecoration("Confirmar Senha", Icons.lock_outline),
+                  obscureText: true,
+                  validator: (v) => v != _senhaController.text ? 'As senhas não coincidem' : null,
+                ),
+                const SizedBox(height: 24),
+                _loading
+                    ? const CircularProgressIndicator(color: Colors.tealAccent)
+                    : SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: _register,
+                    child: const Text("Criar conta como dono de pet", style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
