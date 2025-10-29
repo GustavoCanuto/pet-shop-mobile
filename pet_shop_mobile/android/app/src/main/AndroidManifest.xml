@@ -1,6 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.petshop.fatec.pet_shop_mobile">
 
+    <!-- Permissão de internet -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:name="${applicationName}"
         android:label="pet_shop_mobile"
