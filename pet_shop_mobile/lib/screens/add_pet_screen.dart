@@ -13,30 +13,47 @@ class AddPetScreen extends StatefulWidget {
 class _AddPetScreenState extends State<AddPetScreen> {
   final _formKey = GlobalKey<FormState>();
   final nomeController = TextEditingController();
-  final racaController = TextEditingController();
   final idadeController = TextEditingController();
-  final tipoController = TextEditingController();
+
+  final List<String> tipos = ["Cachorro", "Gato", "Peixe", "Pássaro", "Outro"];
+
+  final Map<String, List<String>> racas = {
+    "Cachorro": ["SRD", "Labrador", "Poodle", "Pitbull", "Bulldog"],
+    "Gato": ["SRD", "Persa", "Siamês", "Maine Coon"],
+    "Peixe": ["Betta", "Kingui", "Neon", "Guppy"],
+    "Pássaro": ["Calopsita", "Canário", "Papagaio"],
+    "Outro": ["Desconhecido"]
+  };
+
+  String? tipoSelecionado;
+  String? racaSelecionada;
 
   bool loading = false;
 
   Future<void> salvarPet() async {
     if (!_formKey.currentState!.validate()) return;
+    if (tipoSelecionado == null || racaSelecionada == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecione o tipo e a raça')),
+      );
+      return;
+    }
 
     setState(() => loading = true);
 
     // 1) Cadastra o pet
     final createPetResult = await ApiService.addPet({
       "nome": nomeController.text,
-      "raca": racaController.text,
+      "raca": racaSelecionada,
       "idade": int.tryParse(idadeController.text) ?? 0,
-      "tipo": tipoController.text,
+      "tipo": tipoSelecionado, // agora é string ✅
     });
 
     if (createPetResult['status'] == true) {
       final int petId = createPetResult['data']['id'];
       final int userId = widget.userData['id'];
 
-      // 2) Vincula o pet ao usuário logado
+      // 2) Vincula ao usuário
       final linkResult = await ApiService.linkPetToUser(userId, petId);
 
       setState(() => loading = false);
@@ -49,25 +66,9 @@ class _AddPetScreenState extends State<AddPetScreen> {
       return;
     }
 
-    // Se falhou ao criar o pet
     setState(() => loading = false);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(createPetResult['message'] ?? "Erro ao cadastrar pet")),
-    );
-  }
-
-  Widget campo(String label, TextEditingController controller) {
-    return TextFormField(
-      controller: controller,
-      validator: (v) => v!.isEmpty ? "Preencha este campo" : null,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white70),
-        filled: true,
-        fillColor: Colors.grey[900],
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-      ),
     );
   }
 
@@ -86,16 +87,60 @@ class _AddPetScreenState extends State<AddPetScreen> {
           key: _formKey,
           child: Column(
             children: [
-              campo("Nome", nomeController),
+              // Nome
+              TextFormField(
+                controller: nomeController,
+                validator: (v) => v!.isEmpty ? "Preencha o nome" : null,
+                style: const TextStyle(color: Colors.white),
+                decoration: _input("Nome"),
+              ),
               const SizedBox(height: 12),
-              campo("Raça", racaController),
+
+              // Tipo
+              DropdownButtonFormField<String>(
+                value: tipoSelecionado,
+                dropdownColor: Colors.grey[900],
+                style: const TextStyle(color: Colors.white),
+                decoration: _input("Tipo"),
+                items: tipos
+                    .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                    .toList(),
+                onChanged: (v) {
+                  setState(() {
+                    tipoSelecionado = v;
+                    racaSelecionada = null;
+                  });
+                },
+              ),
               const SizedBox(height: 12),
-              campo("Idade", idadeController),
+
+              // Raça dependente do Tipo
+              DropdownButtonFormField<String>(
+                value: racaSelecionada,
+                dropdownColor: Colors.grey[900],
+                style: const TextStyle(color: Colors.white),
+                decoration: _input("Raça"),
+                items: (tipoSelecionado == null)
+                    ? []
+                    : racas[tipoSelecionado]!
+                    .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                    .toList(),
+                onChanged: (v) => setState(() => racaSelecionada = v),
+              ),
               const SizedBox(height: 12),
-              campo("Tipo (ex: 1 ou 2)", tipoController),
+
+              // Idade
+              TextFormField(
+                controller: idadeController,
+                validator: (v) => v!.isEmpty ? "Preencha a idade" : null,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: Colors.white),
+                decoration: _input("Idade"),
+              ),
               const SizedBox(height: 24),
+
               loading
-                  ? const CircularProgressIndicator()
+                  ? const CircularProgressIndicator(color: Colors.teal)
                   : ElevatedButton(
                 onPressed: salvarPet,
                 style: ElevatedButton.styleFrom(
@@ -111,6 +156,16 @@ class _AddPetScreenState extends State<AddPetScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  InputDecoration _input(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.white70),
+      filled: true,
+      fillColor: Colors.grey[900],
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
     );
   }
 }

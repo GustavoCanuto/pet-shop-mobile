@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 
 class PetsScreen extends StatefulWidget {
@@ -14,34 +13,60 @@ class PetsScreen extends StatefulWidget {
 class _PetsScreenState extends State<PetsScreen> {
   List<dynamic> pets = [];
 
-  final String defaultPetImage =
-      "https://cdn-icons-png.flaticon.com/512/616/616408.png";
-
   @override
   void initState() {
     super.initState();
-    carregarPetsAtualizados();
+    carregarPets();
   }
 
-  Future<void> carregarPetsAtualizados() async {
+  Future<void> carregarPets() async {
     try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      final email = prefs.getString("email");
-      final senha = prefs.getString("senha");
-
-      if (email == null || senha == null) return;
-
-      final loginResult = await ApiService.login(email, senha);
-
-      if (loginResult['status'] == true) {
-        setState(() {
-          pets = loginResult['data']['pets'] ?? [];
-        });
-      }
+      final idDono = widget.userData['id'];
+      final response = await ApiService.getPetsByOwner(idDono);
+      setState(() => pets = response);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao atualizar pets')),
+        const SnackBar(content: Text("Erro ao carregar pets")),
       );
+    }
+  }
+
+  // ✅ Retorna imagem de acordo com o tipo
+  String getPetImageUrl(String tipo) {
+    switch (tipo.toLowerCase()) {
+      case "cachorro":
+        return "https://cdn-icons-png.flaticon.com/512/616/616408.png";
+      case "gato":
+        return "https://cdn-icons-png.flaticon.com/512/1864/1864514.png";
+      case "peixe":
+        return "https://cdn-icons-png.flaticon.com/512/2990/2990515.png";
+      case "pássaro":
+        return "https://cdn-icons-png.flaticon.com/512/6622/6622646.png";
+      default:
+        return "https://cdn-icons-png.flaticon.com/512/8277/8277564.png";
+    }
+  }
+
+  // ✅ Diálogo de confirmação de exclusão
+  Future<void> confirmarExclusao(int petId) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("Excluir Pet"),
+        content: const Text("Tem certeza que deseja excluir este pet?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancelar")),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Excluir", style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+
+    if (confirmar == true) {
+      final result = await ApiService.deletePet(petId);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result['message'] ?? "Pet removido")),
+      );
+      carregarPets();
     }
   }
 
@@ -51,13 +76,10 @@ class _PetsScreenState extends State<PetsScreen> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: const Text("Meus Pets"),
-        centerTitle: true,
         backgroundColor: Colors.black,
+        centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: carregarPetsAtualizados,
-          )
+          IconButton(onPressed: carregarPets, icon: const Icon(Icons.refresh))
         ],
       ),
       body: pets.isEmpty
@@ -70,26 +92,28 @@ class _PetsScreenState extends State<PetsScreen> {
           : ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: pets.length,
-        itemBuilder: (context, index) {
+        itemBuilder: (_, index) {
           final pet = pets[index];
+
           return Card(
             color: Colors.grey[900],
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             child: ListTile(
               contentPadding: const EdgeInsets.all(12),
-              leading: CircleAvatar(
-                radius: 28,
-                backgroundImage: NetworkImage(defaultPetImage),
+              leading: Image.network(
+                getPetImageUrl(pet['tipo']),
+                width: 48,
+                height: 48,
+                errorBuilder: (_, __, ___) => const Icon(Icons.pets, color: Colors.white),
               ),
-              title: Text(
-                pet["nome"],
-                style: const TextStyle(color: Colors.white, fontSize: 18),
-              ),
+              title: Text(pet['nome'], style: const TextStyle(color: Colors.white, fontSize: 18)),
               subtitle: Text(
-                "Raça: ${pet['raca']} • Idade: ${pet['idade']} anos",
+                "${pet['tipo']}  • ${pet['raca']} • ${pet['idade']} anos",
                 style: const TextStyle(color: Colors.white70),
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                onPressed: () => confirmarExclusao(pet['id']),
               ),
             ),
           );
