@@ -12,6 +12,7 @@ class PetsScreen extends StatefulWidget {
 
 class _PetsScreenState extends State<PetsScreen> {
   List<dynamic> pets = [];
+  bool loading = false; // 🔥 controle de loading
 
   @override
   void initState() {
@@ -20,6 +21,8 @@ class _PetsScreenState extends State<PetsScreen> {
   }
 
   Future<void> carregarPets() async {
+    setState(() => loading = true);
+
     try {
       final idDono = widget.userData['id'];
       final response = await ApiService.getPetsByOwner(idDono);
@@ -28,10 +31,11 @@ class _PetsScreenState extends State<PetsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Erro ao carregar pets")),
       );
+    } finally {
+      setState(() => loading = false);
     }
   }
 
-  // ✅ Retorna imagem de acordo com o tipo
   String getPetImageUrl(String tipo) {
     switch (tipo.toLowerCase()) {
       case "cachorro":
@@ -47,7 +51,6 @@ class _PetsScreenState extends State<PetsScreen> {
     }
   }
 
-  // ✅ Diálogo de confirmação de exclusão
   Future<void> confirmarExclusao(int petId) async {
     final confirmar = await showDialog<bool>(
       context: context,
@@ -55,8 +58,12 @@ class _PetsScreenState extends State<PetsScreen> {
         title: const Text("Excluir Pet"),
         content: const Text("Tem certeza que deseja excluir este pet?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancelar")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Excluir", style: TextStyle(color: Colors.red))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Cancelar")),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("Excluir", style: TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -82,7 +89,15 @@ class _PetsScreenState extends State<PetsScreen> {
           IconButton(onPressed: carregarPets, icon: const Icon(Icons.refresh))
         ],
       ),
-      body: pets.isEmpty
+
+      // 🔥 AGORA TEM LOADING IGUAL AO VER CONSULTAS
+      body: loading
+          ? const Center(
+        child: CircularProgressIndicator(
+          color: Colors.tealAccent,
+        ),
+      )
+          : pets.isEmpty
           ? const Center(
         child: Text(
           "Nenhum pet cadastrado 😿",
@@ -97,16 +112,20 @@ class _PetsScreenState extends State<PetsScreen> {
 
           return Card(
             color: Colors.grey[900],
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14)),
             child: ListTile(
               contentPadding: const EdgeInsets.all(12),
               leading: Image.network(
                 getPetImageUrl(pet['tipo']),
                 width: 48,
                 height: 48,
-                errorBuilder: (_, __, ___) => const Icon(Icons.pets, color: Colors.white),
+                errorBuilder: (_, __, ___) =>
+                const Icon(Icons.pets, color: Colors.white),
               ),
-              title: Text(pet['nome'], style: const TextStyle(color: Colors.white, fontSize: 18)),
+              title: Text(pet['nome'],
+                  style: const TextStyle(
+                      color: Colors.white, fontSize: 18)),
               subtitle: Text(
                 "${pet['tipo']}  • ${pet['raca']} • ${pet['idade']} anos",
                 style: const TextStyle(color: Colors.white70),
