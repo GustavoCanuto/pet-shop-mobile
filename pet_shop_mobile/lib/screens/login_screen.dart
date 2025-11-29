@@ -21,14 +21,30 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _loading = false);
 
       if (result['status'] == true) {
-        // 🔹 SALVAR EMAIL E SENHA PARA USO FUTURO
+
+        final dados = result['data'];
+
+        // 🔥 1. VERIFICAR PERMISSÃO
+        if (dados['permissao'] != 1) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Você não tem permissão para acessar o aplicativo."),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        // 🔹 2. SALVAR EMAIL E SENHA
         SharedPreferences prefs = await SharedPreferences.getInstance();
         await prefs.setString("email", _emailController.text);
         await prefs.setString("senha", _senhaController.text);
 
-        // 🔹 NAVEGAR PARA O MENU
-        Navigator.pushReplacementNamed(context, '/menu', arguments: result['data']);
+        // 🔹 3. ENTRAR NO APP
+        Navigator.pushReplacementNamed(context, '/menu', arguments: dados);
+
       } else {
+        // 🔥 erro de login (senha incorreta, usuário não existe etc.)
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(result['message'] ?? 'Erro desconhecido')),
         );
@@ -40,6 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     }
   }
+
 
 
   InputDecoration _inputDecoration(String label, IconData icon) {
